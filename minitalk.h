@@ -6,6 +6,8 @@
 # include <sys/types.h>
 #include <stdio.h>
 # include <stdbool.h>
+#include "ft_printf/ft_printf.h"
+#include "ft_printf/libft/libft.h"
 
 #define ERRNO 0
 #define EOT 4

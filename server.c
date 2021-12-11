@@ -2,46 +2,6 @@
 
 int g_received_signal = 0;
 
-size_t	ft_strlen(const char *s)
-{
-	size_t	i;
-
-	i = 0;
-	if (!s)
-		return (0);
-	while (s[i] != '\0')
-		i++;
-	return (i);
-}
-
-char	*ft_strjoin(char const *s1, char const *s2)
-{
-	char	*newstr;
-	size_t	i;
-	size_t	j;
-
-	i = 0;
-	j = 0;
-	if (!s1 || !s2)
-		return (NULL);
-	newstr = (char *)malloc(ft_strlen(s1) + ft_strlen(s2) + 1);
-	if (newstr == NULL)
-		return (NULL);
-	while (s1[i] != '\0' && s1[i] != '\n')
-	{
-		newstr[i] = s1[i];
-		i++;
-	}
-	while (s2[j] != '\0' && s2[j] != '\n')
-	{
-		newstr[i] = s2[j];
-		i++;
-		j++;
-	}
-	newstr[i] = '\0';
-	return (newstr);
-}
-
 void	init_struct(t_send *send)
 {
 	send->eot = 0;
@@ -81,10 +41,10 @@ int	set_bit(t_send *send, char **string)
 		// 	return (NULL);
 		tmp[0] = (char)send->bit;
 		tmp[1] = '\0';
-		printf("bits; %d, ", send->bit);
+		ft_printf("bits; %d, ", send->bit);
 		if (send->bit == EOT)
 		{
-			printf("EOT!");
+			ft_printf("EOT!");
 			return (-1);
 		}
 		if (*string == NULL)
@@ -104,12 +64,13 @@ int	set_bit(t_send *send, char **string)
 
 void	confirm_signal_from_client(siginfo_t *siginfo)
 {
-	printf("si_pid; %d\n", siginfo->si_pid);
+	ft_printf("si_pid; %d\n", siginfo->si_pid);
 	kill(siginfo->si_pid, SIGUSR1);
 }
 
 void	take_client_pid(int sig, siginfo_t *info, void *str)
 {
+	(void)*str;
 	g_received_signal = sig;
 	confirm_signal_from_client(info);
 }
@@ -117,24 +78,17 @@ void	take_client_pid(int sig, siginfo_t *info, void *str)
 int	main(void)
 {
 	t_send	send;
-	int j;
 	int i;
-	int n;
-	int str;
 	char *string;
 	struct sigaction	act;
 	siginfo_t	siginfo;
 
-	j = 0;
 	i = 0;
-	str = 0;
 	string = NULL;
 	fflush(stdout);
 	init_struct(&send);
 	init_siginfo(&siginfo);
-	printf("server_pid: %d\n", (int)getpid());
-	// signal(SIGUSR1, &recieve_bit);
-	// signal(SIGUSR2, &recieve_bit);
+	ft_printf("server_pid: %d\n", (int)getpid());
 	// sigemptyset(&act.sa_mask);
 	act.sa_flags = SA_SIGINFO;
 	act.sa_sigaction = take_client_pid;
@@ -145,12 +99,12 @@ int	main(void)
 		if (g_received_signal == SIGUSR1 || g_received_signal == SIGUSR2)
 		{
 			if (set_bit(&send, &string) == -1)
-				printf("EOT\n");
+				ft_printf("EOT\n");
 			usleep(100);
 			i++;
 		}
 		if (string)
-			printf("str; %s\n", string);
+			ft_printf("str; %s\n", string);
 		pause();
 	}
 	return (0);
