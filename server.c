@@ -1,111 +1,63 @@
 #include "minitalk.h"
 
-int g_received_signal = 0;
+int	g_received_signal;
 
-void	init_struct(t_send *send)
+void	init_structure(t_send *send)
 {
-	send->eot = 0;
 	send->count = 0;
-	send->str = NULL;
-	send->str_counter = 0;
 	send->bit = 0;
+	send->strings = NULL;
 }
 
-void	init_siginfo(siginfo_t *siginfo)
-{
-	siginfo->si_pid = 0;
-}
-
-void	recieve_bit(int num)
-{
-	g_received_signal = num;
-}
-
-int	set_bit(t_send *send, char **string)
-{
-	int str;
-	char	*tmp;
-	char	*tmp_string;
-
-	str = 0;
-	tmp = NULL;
-	send->bit <<= 1;
-	if (g_received_signal == SIGUSR2)
-		send->bit += 1;
-	send->count += 1;
-	if (send->count == 8)
-	{
-		send->str_counter += 1;
-		tmp = (char *)malloc(2);
-		// if (!tmp)
-		// 	return (NULL);
-		tmp[0] = (char)send->bit;
-		tmp[1] = '\0';
-		ft_printf("bits; %d, ", send->bit);
-		if (send->bit == EOT)
-		{
-			ft_printf("EOT!");
-			return (-1);
-		}
-		if (*string == NULL)
-			*string = tmp;
-		else
-		{
-			tmp_string = ft_strjoin(*string, tmp);
-			free(*string);
-			*string = tmp_string;
-			free(tmp);
-			tmp = NULL;
-		}
-		send->count = 0;
-	}
-	return (0);
-}
-
-void	confirm_signal_from_client(siginfo_t *siginfo)
-{
-	ft_printf("si_pid; %d\n", siginfo->si_pid);
-	kill(siginfo->si_pid, SIGUSR1);
-}
-
-void	take_client_pid(int sig, siginfo_t *info, void *str)
+void	send_confirmation(int sig, siginfo_t *info, void *str)
 {
 	(void)*str;
 	g_received_signal = sig;
-	confirm_signal_from_client(info);
+	usleep(200);
+	if (kill(info->si_pid, SIGUSR1) == -1)
+		exit(EXIT_FAILURE);
 }
 
-int	main(void)
+void	set_signal(void)
 {
-	t_send	send;
-	int i;
-	char *string;
 	struct sigaction	act;
-	siginfo_t	siginfo;
+	siginfo_t			siginfo;
 
-	i = 0;
-	string = NULL;
-	fflush(stdout);
-	init_struct(&send);
-	init_siginfo(&siginfo);
-	ft_printf("server_pid: %d\n", (int)getpid());
-	// sigemptyset(&act.sa_mask);
+	siginfo.si_pid = 0;
+	if (sigemptyset(&act.sa_mask) != 0)
+		exit(EXIT_FAILURE);
 	act.sa_flags = SA_SIGINFO;
-	act.sa_sigaction = take_client_pid;
-	sigaction(SIGUSR1, &act, NULL);
-	sigaction(SIGUSR2, &act, NULL);
+	act.sa_sigaction = send_confirmation;
+	if (sigaction(SIGUSR1, &act, NULL) != 0)
+		exit(EXIT_FAILURE);
+	if (sigaction(SIGUSR2, &act, NULL) != 0)
+		exit(EXIT_FAILURE);
+}
+
+int	exit_server(t_send *send)
+{
+	free(send->strings);
+	return (EXIT_SUCCESS);
+}
+
+int	main(int argc, char **argv)
+{
+	t_send				send;
+
+	(void)**argv;
+	if (argc != 1)
+		exit(EXIT_FAILURE);
+	g_received_signal = 0;
+	ft_printf("server_pid: %d\n", (int)getpid());
+	init_structure(&send);
+	set_signal();
 	while (1)
 	{
 		if (g_received_signal == SIGUSR1 || g_received_signal == SIGUSR2)
-		{
-			if (set_bit(&send, &string) == -1)
-				ft_printf("EOT\n");
-			usleep(100);
-			i++;
-		}
-		if (string)
-			ft_printf("str; %s\n", string);
+			set_bit(&send);
+		else if (g_received_signal == SIGINT)
+			exit(exit_server(&send));
 		pause();
 	}
-	return (0);
+	exit(EXIT_SUCCESS);
 }
